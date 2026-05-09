@@ -212,6 +212,28 @@
   .admin-row-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
   .admin-arrow { color: var(--text3); font-size: 16px; }
 
+  /* CHIUSURE */
+  .giorni-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 14px; }
+  .giorno-btn { background: var(--dark3); border: 1px solid var(--border); border-radius: 10px; padding: 8px 4px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .giorno-btn.chiuso { background: #2A1010; border-color: var(--danger); }
+  .giorno-btn .g-nome { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; }
+  .giorno-btn.chiuso .g-nome { color: var(--danger); }
+  .chiusura-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid var(--border); }
+  .chiusura-row:last-child { border-bottom: none; }
+  .ch-info .ch-tipo { font-size: 11px; color: var(--gold); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .ch-info .ch-data { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 2px; }
+  .ch-info .ch-nota { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .btn-del-ch { background: transparent; border: 1px solid #3A2020; color: var(--danger); border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+  .tipo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+  .tipo-opt { background: var(--dark3); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer; text-align: center; font-size: 13px; font-weight: 600; color: var(--text); transition: all 0.15s; }
+  .tipo-opt.active { background: #1A1500; border-color: var(--gold); color: var(--gold); }
+  .tipo-opt span { display: block; font-size: 10px; font-weight: 400; color: var(--text3); margin-top: 3px; }
+  .slot-chiuso { background: #1A1010; cursor: not-allowed; }
+  .slot-chiuso-label { font-size: 11px; color: #4A3030; font-style: italic; padding: 0 10px; }
+  .week-day.giorno-chiuso { background: #1A1010; border-color: #3A2020; }
+  .week-day.giorno-chiuso .wd-nome { color: #4A3030; }
+  .week-day.giorno-chiuso .wd-num { color: #4A3030; }
+
   /* PIN */
   .pin-dots { display: flex; gap: 14px; justify-content: center; margin: 24px 0 28px; }
   .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); transition: all 0.15s; }
@@ -399,6 +421,40 @@
   </div>
 </div>
 
+<!-- OVERLAY CHIUSURA ECCEZIONALE -->
+<div class="overlay" id="chiusura-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Aggiungi chiusura</h3>
+    <p>Imposta quando il salone è chiuso</p>
+    <div class="field-label">Tipo di chiusura</div>
+    <div class="tipo-grid">
+      <button class="tipo-opt active" id="tipo-giorno" onclick="selTipo('giorno')">
+        📅 Giorno intero<span>Es. giorno di ferie</span>
+      </button>
+      <button class="tipo-opt" id="tipo-mattina" onclick="selTipo('mattina')">
+        🌅 Solo mattina<span>9:00 – 13:00</span>
+      </button>
+      <button class="tipo-opt" id="tipo-pomeriggio" onclick="selTipo('pomeriggio')">
+        🌆 Solo pomeriggio<span>14:00 – 19:00</span>
+      </button>
+      <button class="tipo-opt" id="tipo-periodo" onclick="selTipo('periodo')">
+        📆 Periodo<span>Es. ferie estive</span>
+      </button>
+    </div>
+    <div class="field-label" id="ch-dal-label">Data</div>
+    <input class="field-input" type="date" id="ch-dal">
+    <div id="ch-al-row" style="display:none">
+      <div class="field-label">Data fine</div>
+      <input class="field-input" type="date" id="ch-al">
+    </div>
+    <div class="field-label">Motivo (opzionale)</div>
+    <input class="field-input" type="text" id="ch-nota" placeholder="Es. Ferie, Imprevisto, Corso...">
+    <button class="btn-gold" onclick="salvaChiusura()">Salva chiusura</button>
+    <button class="btn-cancel" onclick="chiudiOverlay('chiusura-overlay')">Annulla</button>
+  </div>
+</div>
+
 <!-- TOP BAR -->
 <div class="top-bar">
   <div><div class="salon-name">ÉLUME</div><div class="salon-sub">Hair Studio</div></div>
@@ -524,6 +580,16 @@
 <!-- ADMIN -->
 <div id="screen-admin" class="screen">
   <div class="admin-section">
+    <div class="admin-title">Orari e chiusure</div>
+    <div class="field-label">Giorni di chiusura standard</div>
+    <div class="giorni-grid" id="giorni-standard-grid"></div>
+    <div class="admin-title">Chiusure eccezionali</div>
+    <div class="admin-card" id="chiusure-list">
+      <div class="empty-state" style="padding:16px">Nessuna chiusura programmata</div>
+    </div>
+    <button class="btn-gold" onclick="apriChiusura()" style="margin-top:2px">+ Aggiungi chiusura eccezionale</button>
+  </div>
+  <div class="admin-section">
     <div class="admin-title">Gestione servizi</div>
     <div class="admin-card" id="admin-services-list"></div>
     <button class="btn-gold" onclick="apriNuovoServizio()" style="margin-top:10px">+ Aggiungi nuovo servizio</button>
@@ -575,6 +641,7 @@
   let prodotti      = [];
   let vendite       = [];
   let appuntamenti  = [];
+  let chiusure      = { giorni_standard: [0, 1], eccezionali: [] };
   let venditeOggi   = {};
   let popupProdId   = null;
   let editProdId    = null;
@@ -628,7 +695,7 @@
     await fetch(BIN_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY, 'X-Access-Key': ACCESS_KEY },
-      body: JSON.stringify({ catalogo: prodotti, vendite, appuntamenti })
+      body: JSON.stringify({ catalogo: prodotti, vendite, appuntamenti, chiusure })
     });
   }
 
@@ -643,6 +710,7 @@
       prodotti     = (dati.catalogo && dati.catalogo.length) ? dati.catalogo : CATALOGO_DEFAULT;
       vendite      = dati.vendite || [];
       appuntamenti = dati.appuntamenti || [];
+      chiusure     = dati.chiusure || { giorni_standard: [0, 1], eccezionali: [] };
       if (!dati.catalogo) await salvaDati();
       calcolaOggi();
       buildGrid();
@@ -979,11 +1047,12 @@
       const hasAppt = appuntamenti.some(a => a.data === ds);
       const isToday = ds === oggi;
       const isSel   = ds === calGiornoSel;
-      stripHtml += '<div class="week-day ' + (isSel?'active ':'') + (isToday&&!isSel?'today':'') +
+      const chiuso  = isGiornoChiuso(ds);
+      stripHtml += '<div class="week-day ' + (isSel?'active ':chiuso?'giorno-chiuso ':'') + (isToday&&!isSel?'today':'') +
         '" onclick="selGiorno(\'' + ds + '\')">' +
         '<div class="wd-name">' + giorni[i] + '</div>' +
         '<div class="wd-num">' + d.getDate() + '</div>' +
-        (hasAppt ? '<div class="wd-dot"></div>' : '<div style="height:8px"></div>') +
+        (hasAppt && !chiuso ? '<div class="wd-dot"></div>' : chiuso ? '<div style="font-size:9px;color:#4A3030;margin-top:3px">✕</div>' : '<div style="height:8px"></div>') +
         '</div>';
     }
     document.getElementById('week-strip').innerHTML = stripHtml;
@@ -993,8 +1062,23 @@
   function selGiorno(ds) { calGiornoSel = ds; buildCalendario(); }
 
   function buildSlots() {
-    const ds   = calGiornoSel;
+    const ds    = calGiornoSel;
     const appts = appuntamenti.filter(a => a.data === ds);
+    const giornoCh = isGiornoChiuso(ds);
+
+    // Se il giorno è completamente chiuso
+    if (giornoCh) {
+      const motivo = giornoCh === 'standard'
+        ? 'Giorno di chiusura'
+        : (chiusure.eccezionali.find(c => ds >= c.dal && ds <= c.al)?.nota || 'Chiusura eccezionale');
+      document.getElementById('time-grid').innerHTML =
+        '<div style="padding:32px 16px;text-align:center;">' +
+        '<div style="font-size:32px;margin-bottom:12px">🔒</div>' +
+        '<div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">Salone chiuso</div>' +
+        '<div style="font-size:13px;color:var(--text3)">' + motivo + '</div>' +
+        '</div>';
+      return;
+    }
 
     // Build occupied map
     const occupato = {};
@@ -1025,13 +1109,15 @@
 
   function buildSlotRow(ora, occupato, ds) {
     const occ = occupato[ora];
-    if (occ && !occ.isFirst) return ''; // slot coperto da appuntamento precedente
-    const slotH = occ ? Math.min(occ.slots * 44, 44 * occ.slots) : 44;
+    if (occ && !occ.isFirst) return '';
+    const slotCh = isSlotChiuso(ds, ora);
     const colors = ['color-0','color-1','color-2','color-3'];
     const colorIdx = occ ? (occ.appt.id % 4) : 0;
 
     let slotContent = '';
-    if (occ) {
+    if (slotCh && !occ) {
+      slotContent = '<div class="slot-chiuso-label">Chiuso</div>';
+    } else if (occ) {
       const a = occ.appt;
       slotContent = '<div class="appt-block ' + colors[colorIdx] + '" onclick="apriModAppt(\'' + a.id + '\')" style="min-height:' + (occ.slots*40-8) + 'px">' +
         '<div class="appt-client">' + a.cliente + '</div>' +
@@ -1042,9 +1128,12 @@
       slotContent = '<div class="slot-empty-hint">+ Aggiungi</div>';
     }
 
+    const slotClass = (slotCh && !occ) ? 'slot-chiuso' : (occ ? 'occupied' : '');
+    const clickAttr = (!slotCh && !occ) ? 'onclick="apriNuovoAppt(\'' + ds + '\',\'' + ora + '\')"' : '';
+
     return '<div class="time-block" style="min-height:' + (occ?occ.slots*44:44) + 'px">' +
       '<div class="time-label">' + ora + '</div>' +
-      '<div class="slot-area ' + (occ?'occupied':'') + '" ' + (!occ?'onclick="apriNuovoAppt(\'' + ds + '\',\'' + ora + '\')"':'') + '>' +
+      '<div class="slot-area ' + slotClass + '" ' + clickAttr + '>' +
       slotContent + '</div></div>';
   }
 
@@ -1249,6 +1338,129 @@
       insights.map(i => '<div class="ai-insight ' + i.tipo + '"><div class="ai-insight-title">' + i.titolo + '</div><div class="ai-insight-text">' + i.testo + '</div></div>').join('');
   }
 
+  // ---- GESTIONE CHIUSURE ----
+  const NOMI_GIORNI = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const NOMI_GIORNI_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  let tipoChiusura = 'giorno';
+
+  function isGiornoChiuso(ds) {
+    const d = new Date(ds + 'T12:00:00');
+    const dow = d.getDay();
+    if (chiusure.giorni_standard.includes(dow)) return 'standard';
+    for (const c of chiusure.eccezionali) {
+      if (c.tipo === 'giorno' || c.tipo === 'periodo') {
+        if (ds >= c.dal && ds <= c.al) return c.tipo;
+      }
+    }
+    return null;
+  }
+
+  function isFasciaChiusa(ds, fascia) {
+    // fascia: 'mattina' o 'pomeriggio'
+    for (const c of chiusure.eccezionali) {
+      if (c.tipo === fascia && ds >= c.dal && ds <= c.al) return true;
+    }
+    return false;
+  }
+
+  function isSlotChiuso(ds, ora) {
+    if (isGiornoChiuso(ds)) return true;
+    const isMattina = ora < '13:00';
+    if (isMattina && isFasciaChiusa(ds, 'mattina')) return true;
+    if (!isMattina && isFasciaChiusa(ds, 'pomeriggio')) return true;
+    return false;
+  }
+
+  function buildGiorniStandard() {
+    const grid = document.getElementById('giorni-standard-grid');
+    if (!grid) return;
+    grid.innerHTML = NOMI_GIORNI.map((n, i) => {
+      const isChiuso = chiusure.giorni_standard.includes(i);
+      return '<div class="giorno-btn ' + (isChiuso ? 'chiuso' : '') + '" onclick="toggleGiornoStandard(' + i + ')">' +
+        '<div class="g-nome">' + n + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  async function toggleGiornoStandard(dow) {
+    const idx = chiusure.giorni_standard.indexOf(dow);
+    if (idx !== -1) chiusure.giorni_standard.splice(idx, 1);
+    else chiusure.giorni_standard.push(dow);
+    buildGiorniStandard();
+    buildChiusureList();
+    await salvaDati();
+    buildCalendario();
+  }
+
+  function buildChiusureList() {
+    const list = document.getElementById('chiusure-list');
+    if (!list) return;
+    const future = chiusure.eccezionali
+      .filter(c => c.al >= dateStr(new Date()))
+      .sort((a,b) => a.dal.localeCompare(b.dal));
+    if (!future.length) {
+      list.innerHTML = '<div class="empty-state" style="padding:16px">Nessuna chiusura programmata</div>';
+      return;
+    }
+    const tipiLabel = { giorno: '📅 Giorno intero', mattina: '🌅 Solo mattina', pomeriggio: '🌆 Solo pomeriggio', periodo: '📆 Periodo' };
+    list.innerHTML = future.map(c => {
+      const dataLabel = c.dal === c.al ? fmtData(c.dal) : fmtData(c.dal) + ' → ' + fmtData(c.al);
+      return '<div class="chiusura-row">' +
+        '<div class="ch-info">' +
+          '<div class="ch-tipo">' + (tipiLabel[c.tipo] || c.tipo) + '</div>' +
+          '<div class="ch-data">' + dataLabel + '</div>' +
+          (c.nota ? '<div class="ch-nota">' + c.nota + '</div>' : '') +
+        '</div>' +
+        '<button class="btn-del-ch" onclick="eliminaChiusura(' + c.id + ')">✕</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  function fmtData(ds) {
+    const d = new Date(ds + 'T12:00:00');
+    return d.toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short' });
+  }
+
+  function apriChiusura() {
+    tipoChiusura = 'giorno';
+    selTipo('giorno');
+    document.getElementById('ch-dal').value  = dateStr(new Date());
+    document.getElementById('ch-al').value   = dateStr(new Date());
+    document.getElementById('ch-nota').value = '';
+    apriOverlay('chiusura-overlay');
+  }
+
+  function selTipo(tipo) {
+    tipoChiusura = tipo;
+    ['giorno','mattina','pomeriggio','periodo'].forEach(t => {
+      document.getElementById('tipo-' + t).classList.toggle('active', t === tipo);
+    });
+    document.getElementById('ch-al-row').style.display    = tipo === 'periodo' ? 'block' : 'none';
+    document.getElementById('ch-dal-label').textContent   = tipo === 'periodo' ? 'Data inizio' : 'Data';
+  }
+
+  async function salvaChiusura() {
+    const dal  = document.getElementById('ch-dal').value;
+    const al   = tipoChiusura === 'periodo' ? document.getElementById('ch-al').value : dal;
+    const nota = document.getElementById('ch-nota').value.trim();
+    if (!dal) { showToast('Seleziona una data', 'undo'); return; }
+    if (tipoChiusura === 'periodo' && al < dal) { showToast('La data fine deve essere dopo la data inizio', 'undo'); return; }
+    chiusure.eccezionali.push({ id: nextId(chiusure.eccezionali), tipo: tipoChiusura, dal, al, nota });
+    chiudiOverlay('chiusura-overlay');
+    buildChiusureList();
+    buildCalendario();
+    showToast('✓ Chiusura salvata');
+    await salvaDati();
+  }
+
+  async function eliminaChiusura(id) {
+    chiusure.eccezionali = chiusure.eccezionali.filter(c => c.id !== id);
+    buildChiusureList();
+    buildCalendario();
+    showToast('Chiusura eliminata', 'undo');
+    await salvaDati();
+  }
+
   // ---- LISTINO ----
   function buildListino() {
     const categorie = {};
@@ -1294,6 +1506,8 @@
   function aggiornaPin() { for (let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled', i < pinBuffer.length); }
 
   function buildAdmin() {
+    buildGiorniStandard();
+    buildChiusureList();
     const list = document.getElementById('admin-services-list');
     list.innerHTML = prodotti.map(p =>
       '<div class="admin-row" onclick="apriModificaServizio(' + p.id + ')">' +
