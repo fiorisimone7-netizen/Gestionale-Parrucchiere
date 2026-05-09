@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Parrucchiere">
+<title>Gestionale Parrucchiere</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f7;
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .top-bar {
+    background: #fff;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #e5e5ea;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .top-bar h1 { font-size: 17px; font-weight: 600; color: #1c1c1e; }
+  .top-bar .data { font-size: 13px; color: #8e8e93; }
+  .nav-tabs {
+    display: flex;
+    background: #fff;
+    border-bottom: 1px solid #e5e5ea;
+    position: sticky;
+    top: 53px;
+    z-index: 10;
+  }
+  .nav-tab {
+    flex: 1;
+    padding: 10px 4px 8px;
+    font-size: 11px;
+    color: #8e8e93;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    border-bottom: 2px solid transparent;
+  }
+  .nav-tab svg { width: 22px; height: 22px; }
+  .nav-tab.active { color: #af52de; border-bottom-color: #af52de; }
+  .screen { display: none; padding: 14px; }
+  .screen.active { display: block; }
+  .day-total {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    border: 1px solid #e5e5ea;
+  }
+  .day-total .label { font-size: 12px; color: #8e8e93; margin-bottom: 4px; }
+  .day-total .value { font-size: 22px; font-weight: 600; color: #1c1c1e; }
+  .day-total .profit { font-size: 20px; font-weight: 600; color: #34c759; }
+  .cat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8e8e93;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 14px 0 8px;
+  }
+  .service-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .service-btn {
+    background: #fff;
+    border: 1px solid #e5e5ea;
+    border-radius: 14px;
+    padding: 14px 10px;
+    cursor: pointer;
+    text-align: center;
+    position: relative;
+    transition: transform 0.1s, background 0.15s;
+    -webkit-user-select: none;
+    user-select: none;
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .service-btn:active { transform: scale(0.94); }
+  .service-btn.tapped { background: #f5f0ff; border-color: #af52de; }
+  .service-btn.undo-mode { background: #fff5f5; border-color: #ff3b30; }
+  .service-btn .s-name { font-size: 13px; font-weight: 600; color: #1c1c1e; line-height: 1.3; }
+  .service-btn .s-price { font-size: 12px; color: #8e8e93; }
+  .service-btn .badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    background: #af52de;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 2px 7px;
+    min-width: 20px;
+    display: none;
+  }
+  .price-popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 50;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .price-popup-overlay.show { display: flex; }
+  .price-popup {
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 36px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .price-popup h3 { font-size: 17px; font-weight: 600; color: #1c1c1e; margin-bottom: 6px; }
+  .price-popup p { font-size: 13px; color: #8e8e93; margin-bottom: 16px; }
+  .price-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .price-opt {
+    background: #f5f5f7;
+    border: 1px solid #e5e5ea;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1c1c1e;
+  }
+  .price-opt span { display: block; font-size: 11px; font-weight: 400; color: #8e8e93; margin-top: 2px; }
+  .custom-price-row { display: flex; gap: 10px; }
+  .custom-price-row input {
+    flex: 1;
+    padding: 12px 14px;
+    border: 1px solid #e5e5ea;
+    border-radius: 12px;
+    font-size: 16px;
+    outline: none;
+    background: #f5f5f7;
+  }
+  .custom-price-row input:focus { border-color: #af52de; background: #fff; }
+  .btn-confirm {
+    flex: 1;
+    padding: 12px;
+    background: #af52de;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-cancel-popup {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    background: transparent;
+    color: #8e8e93;
+    border: none;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1c1c1e;
+    color: #fff;
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.22s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.undo { background: #ff3b30; }
+  .reset-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    color: #ff3b30;
+    background: #fff;
+    border: 1px solid #ffd5d3;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-top: 14px;
+  }
+  .hint { font-size: 12px; color: #8e8e93; text-align: center; margin-bottom: 12px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .stat-card { background: #fff; border-radius: 14px; padding: 14px; border: 1px solid #e5e5ea; }
+  .stat-card .s-label { font-size: 11px; color: #8e8e93; margin-bottom: 4px; }
+  .stat-card .s-value { font-size: 20px; font-weight: 700; color: #1c1c1e; }
+  .stat-card .s-value.green { color: #34c759; }
+  .stat-card .s-value.purple { color: #af52de; }
+  .highlight {
+    border-radius: 14px;
+    padding: 13px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid;
+  }
+  .highlight.purple { background: #f9f0ff; border-color: #d9a8f0; }
+  .highlight.green { background: #f0fff4; border-color: #a8f0be; }
+  .highlight .icon { font-size: 24px; }
+  .highlight .h-label { font-size: 11px; color: #8e8e93; margin-bottom: 2px; }
+  .highlight .h-value { font-size: 14px; font-weight: 600; }
+  .highlight.purple .h-value { color: #7b2fa8; }
+  .highlight.green .h-value { color: #1a8a3a; }
+  .report-list { background: #fff; border-radius: 14px; border: 1px solid #e5e5ea; overflow: hidden; margin-bottom: 10px; }
+  .report-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border-bottom: 1px solid #f2f2f7; }
+  .report-row:last-child { border-bottom: none; }
+  .r-cat { font-size: 10px; color: #af52de; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .r-name { font-size: 13px; font-weight: 600; color: #1c1c1e; margin: 1px 0; }
+  .r-sub { font-size: 11px; color: #8e8e93; }
+  .r-bar { height: 4px; background: #e5e5ea; border-radius: 2px; margin-top: 4px; width: 80px; }
+  .r-bar-fill { height: 100%; border-radius: 2px; background: #af52de; }
+  .r-bar-fill.high { background: #34c759; }
+  .r-margin { font-size: 14px; font-weight: 700; text-align: right; }
+  .r-margin.high { color: #34c759; }
+  .r-margin.mid { color: #ff9500; }
+  .r-gain { font-size: 11px; color: #8e8e93; text-align: right; margin-top: 2px; }
+  .catalog-section { margin-bottom: 14px; }
+  .catalog-list { background: #fff; border-radius: 14px; border: 1px solid #e5e5ea; overflow: hidden; }
+  .cat-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #f2f2f7; }
+  .cat-row:last-child { border-bottom: none; }
+  .cat-name { font-size: 14px; font-weight: 600; color: #1c1c1e; }
+  .cat-sub { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+  .cat-m { font-size: 15px; font-weight: 700; color: #34c759; text-align: right; }
+  .cat-m span { display: block; font-size: 11px; font-weight: 400; color: #8e8e93; }
+  #loading {
+    position: fixed; inset: 0;
+    background: rgba(255,255,255,0.95);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; flex-direction: column; gap: 12px;
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid #e5e5ea;
+    border-top-color: #af52de;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { font-size: 14px; color: #8e8e93; }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><p>Caricamento...</p></div>
+
+<div class="price-popup-overlay" id="price-overlay">
+  <div class="price-popup">
+    <h3 id="popup-title">Seleziona prezzo</h3>
+    <p id="popup-subtitle">Scegli il prezzo praticato oggi</p>
+    <div class="price-options" id="popup-options"></div>
+    <div class="custom-price-row">
+      <input type="number" id="custom-price" placeholder="Prezzo personalizzato €" inputmode="decimal" step="0.50">
+      <button class="btn-confirm" onclick="confermaPrezzoCustom()">Ok</button>
+    </div>
+    <button class="btn-cancel-popup" onclick="chiudiPopup()">Annulla</button>
+  </div>
+</div>
+
+<div class="top-bar">
+  <h1>✂️ Parrucchiere</h1>
+  <span class="data" id="today-label"></span>
+</div>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" id="tab-vendi" onclick="showScreen('vendi')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    Servizi
+  </button>
+  <button class="nav-tab" id="tab-report" onclick="showScreen('report')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Report
+  </button>
+  <button class="nav-tab" id="tab-catalogo" onclick="showScreen('catalogo')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Listino
+  </button>
+</div>
+
+<div id="screen-vendi" class="screen active">
+  <div class="day-total">
+    <div>
+      <div class="label">Incasso oggi</div>
+      <div class="value" id="day-rev">0,00 €</div>
+    </div>
+    <div style="text-align:right">
+      <div class="label">Guadagno netto</div>
+      <div class="profit" id="day-profit">0,00 €</div>
+    </div>
+  </div>
+  <div class="hint">Tocca per registrare · Tieni premuto per annullare</div>
+  <div id="services-container"></div>
+  <button class="reset-btn" onclick="confermaReset()">⚠️ Azzera giornata</button>
+</div>
+
+<div id="screen-report" class="screen">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="s-label">Incasso mese</div><div class="s-value purple" id="r-incasso">—</div></div>
+    <div class="stat-card"><div class="s-label">Guadagno netto</div><div class="s-value green" id="r-profitto">—</div></div>
+    <div class="stat-card"><div class="s-label">Servizi totali</div><div class="s-value" id="r-vendite">—</div></div>
+    <div class="stat-card"><div class="s-label">Margine medio</div><div class="s-value" id="r-margine">—</div></div>
+  </div>
+  <div class="highlight purple">
+    <span class="icon">⭐</span>
+    <div><div class="h-label">Servizio più richiesto</div><div class="h-value" id="hl-v-name">—</div></div>
+  </div>
+  <div class="highlight green">
+    <span class="icon">💰</span>
+    <div><div class="h-label">Margine più alto</div><div class="h-value" id="hl-m-name">—</div></div>
+  </div>
+  <div class="cat-label" style="margin-top:4px">Dettaglio per servizio</div>
+  <div class="report-list" id="report-list">
+    <div style="padding:16px;text-align:center;color:#8e8e93">Nessun servizio registrato questo mese</div>
+  </div>
+</div>
+
+<div id="screen-catalogo" class="screen">
+  <div id="catalog-container"></div>
+  <div style="background:#fff;border-radius:14px;border:1px solid #e5e5ea;padding:14px;font-size:13px;color:#8e8e93;line-height:1.6;margin-top:10px;">
+    💡 Per modificare prezzi contatta il tuo consulente.
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ---- CONFIGURAZIONE ----
+  const MASTER_KEY = '$2a$10$y1KUAmvnehD9qUBS8L4.oePQb4uoVX1vL4vI0VTXdN36sTRKLoqH2';
+  const ACCESS_KEY = '$2a$10$IWpYKf7f5zw97Fztg3dfoeK2.rZXOgt77SA7joMrZnuoEXzArQql6';
+  const BIN_ID     = '69fed779adc21f119a74f135';
+  const BIN_URL    = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+
+  // ---- CATALOGO PRODOTTI ----
+  const prodotti = [
+    { id:1,  nome:'Taglio donna',          prezzo:42,  costo:3,  categoria:'Taglio e Styling' },
+    { id:2,  nome:'Taglio uomo',           prezzo:30,  costo:2,  categoria:'Taglio e Styling' },
+    { id:3,  nome:'Taglio bambino',        prezzo:20,  costo:1.5,categoria:'Taglio e Styling' },
+    { id:4,  nome:'Piega',                 prezzo:30,  costo:2,  categoria:'Taglio e Styling' },
+    { id:5,  nome:'Styling per eventi',    prezzo:57,  costo:5,  categoria:'Taglio e Styling' },
+    { id:6,  nome:'Colore completo',       prezzo:75,  costo:15, categoria:'Colore e Trattamenti' },
+    { id:7,  nome:'Meches/Colpi di sole',  prezzo:85,  costo:18, categoria:'Colore e Trattamenti' },
+    { id:8,  nome:'Ritocco ricrescita',    prezzo:52,  costo:10, categoria:'Colore e Trattamenti' },
+    { id:9,  nome:'Tratt. ristrutturante', prezzo:42,  costo:8,  categoria:'Colore e Trattamenti' },
+    { id:10, nome:'Maschera nutriente',    prezzo:25,  costo:5,  categoria:'Colore e Trattamenti' },
+    { id:11, nome:'Permanente',            prezzo:100, costo:20, categoria:'Servizi Speciali' },
+    { id:12, nome:'Stiratura chimica',     prezzo:125, costo:25, categoria:'Servizi Speciali' },
+    { id:13, nome:'Extension',             prezzo:225, costo:80, categoria:'Servizi Speciali' },
+    { id:14, nome:'Acconciatura sposa',    prezzo:115, costo:10, categoria:'Servizi Speciali' },
+    { id:15, nome:'Consulenza stile',      prezzo:30,  costo:0,  categoria:'Servizi Speciali' },
+  ];
+
+  let venditeOggi = {};
+  let tutteVendite = [];
+  let popupProdId = null;
+
+  // ---- UTILITÀ ----
+  function fmt(n) { return parseFloat(n).toFixed(2).replace('.', ',') + ' €'; }
+  function mPct(p) { return Math.round(((p.prezzo - p.costo) / p.prezzo) * 100); }
+  function oggiStr() { return new Date().toDateString(); }
+  function meseCorrente() {
+    const d = new Date();
+    return d.getMonth() + '-' + d.getFullYear();
+  }
+
+  let toastTimer;
+  function showToast(msg, tipo) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = tipo === 'undo' ? 'show undo' : 'show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.className = ''; }, 2200);
+  }
+
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'report') aggiornaReport();
+    if (name === 'catalogo') buildCatalog();
+  }
+
+  // ---- JSONbin API ----
+  async function leggiDati() {
+    const res = await fetch(BIN_URL + '/latest', {
+      headers: { 'X-Master-Key': MASTER_KEY, 'X-Access-Key': ACCESS_KEY }
+    });
+    const json = await res.json();
+    return json.record || { vendite: [] };
+  }
+
+  async function salvaDati(dati) {
+    await fetch(BIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': MASTER_KEY,
+        'X-Access-Key': ACCESS_KEY
+      },
+      body: JSON.stringify(dati)
+    });
+  }
+
+  // ---- INIT ----
+  async function init() {
+    const d = new Date();
+    document.getElementById('today-label').textContent = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear();
+    try {
+      const dati = await leggiDati();
+      tutteVendite = dati.vendite || [];
+      calcolaOggi();
+      buildGrid();
+      document.getElementById('loading').style.display = 'none';
+    } catch(e) {
+      document.getElementById('loading').innerHTML = '<p style="color:#ff3b30;padding:20px">Errore connessione. Controlla la rete.</p>';
+    }
+  }
+
+  function calcolaOggi() {
+    venditeOggi = {};
+    const oggi = oggiStr();
+    tutteVendite.forEach(v => {
+      if (new Date(v.timestamp).toDateString() !== oggi) return;
+      if (!venditeOggi[v.prodottoId]) venditeOggi[v.prodottoId] = { nome: v.nome, quantita: 0, ricavo: 0, margine: 0 };
+      venditeOggi[v.prodottoId].quantita++;
+      venditeOggi[v.prodottoId].ricavo  += v.prezzo;
+      venditeOggi[v.prodottoId].margine += v.margine;
+    });
+    aggiornaBadge();
+    aggiornaTotaleGiorno();
+  }
+
+  // ---- GRIGLIA SERVIZI ----
+  function buildGrid() {
+    const container = document.getElementById('services-container');
+    const categorie = {};
+    prodotti.forEach(p => {
+      if (!categorie[p.categoria]) categorie[p.categoria] = [];
+      categorie[p.categoria].push(p);
+    });
+    let html = '';
+    Object.keys(categorie).forEach(cat => {
+      html += '<div class="cat-label">' + cat + '</div><div class="service-grid">';
+      categorie[cat].forEach(p => {
+        html += '<button class="service-btn" id="pbtn-' + p.id + '" onclick="apriPopupPrezzo(' + p.id + ')">' +
+          '<span class="badge" id="badge-' + p.id + '"></span>' +
+          '<div class="s-name">' + p.nome + '</div>' +
+          '<div class="s-price">' + fmt(p.prezzo) + '</div>' +
+          '</button>';
+      });
+      html += '</div>';
+    });
+    container.innerHTML = html;
+
+    prodotti.forEach(p => {
+      const btn = document.getElementById('pbtn-' + p.id);
+      if (!btn) return;
+      let pressTimer;
+      btn.addEventListener('touchstart', () => { pressTimer = setTimeout(() => annullaVendita(p.id), 600); }, { passive: true });
+      btn.addEventListener('touchend',   () => clearTimeout(pressTimer), { passive: true });
+      btn.addEventListener('touchmove',  () => clearTimeout(pressTimer), { passive: true });
+    });
+  }
+
+  // ---- POPUP PREZZO ----
+  function apriPopupPrezzo(id) {
+    const p = prodotti.find(x => x.id === id);
+    popupProdId = id;
+    document.getElementById('popup-title').textContent    = p.nome;
+    document.getElementById('custom-price').value         = '';
+    const base    = p.prezzo;
+    const opzioni = [
+      { label: fmt(base * 0.8),  sub: '-20%',    val: +(base * 0.8).toFixed(2) },
+      { label: fmt(base),        sub: 'standard', val: base },
+      { label: fmt(base * 1.1),  sub: '+10%',     val: +(base * 1.1).toFixed(2) },
+      { label: fmt(base * 1.2),  sub: '+20%',     val: +(base * 1.2).toFixed(2) },
+    ];
+    document.getElementById('popup-options').innerHTML = opzioni.map(o =>
+      '<button class="price-opt" onclick="confermaPrezzoRapido(' + o.val + ')">' + o.label + '<span>' + o.sub + '</span></button>'
+    ).join('');
+    document.getElementById('price-overlay').classList.add('show');
+  }
+
+  function chiudiPopup() {
+    document.getElementById('price-overlay').classList.remove('show');
+    popupProdId = null;
+  }
+
+  function confermaPrezzoRapido(prezzo) {
+    const id = popupProdId;
+    chiudiPopup();
+    eseguiRegistrazione(id, prezzo);
+  }
+
+  function confermaPrezzoCustom() {
+    const val = parseFloat(document.getElementById('custom-price').value);
+    if (!val || val <= 0) { showToast('Inserisci un prezzo valido', 'undo'); return; }
+    const id = popupProdId;
+    chiudiPopup();
+    eseguiRegistrazione(id, val);
+  }
+
+  // ---- REGISTRA VENDITA ----
+  async function eseguiRegistrazione(id, prezzoUsato) {
+    const p = prodotti.find(x => x.id === id);
+    const margine = prezzoUsato - p.costo;
+
+    // Aggiornamento ottimistico
+    if (!venditeOggi[id]) venditeOggi[id] = { nome: p.nome, quantita: 0, ricavo: 0, margine: 0 };
+    venditeOggi[id].quantita++;
+    venditeOggi[id].ricavo  += prezzoUsato;
+    venditeOggi[id].margine += margine;
+    aggiornaBadge();
+    aggiornaTotaleGiorno();
+
+    const btn = document.getElementById('pbtn-' + id);
+    btn.classList.add('tapped');
+    setTimeout(() => btn.classList.remove('tapped'), 280);
+    showToast('✓ ' + p.nome + ' · ' + fmt(prezzoUsato));
+
+    // Salva su JSONbin
+    const nuovaVendita = {
+      timestamp:  new Date().toISOString(),
+      prodottoId: id,
+      nome:       p.nome,
+      categoria:  p.categoria,
+      prezzo:     prezzoUsato,
+      costo:      p.costo,
+      margine:    margine
+    };
+    tutteVendite.push(nuovaVendita);
+    try {
+      await salvaDati({ vendite: tutteVendite });
+    } catch(e) {
+      // Rollback se fallisce
+      tutteVendite.pop();
+      venditeOggi[id].quantita--;
+      venditeOggi[id].ricavo  -= prezzoUsato;
+      venditeOggi[id].margine -= margine;
+      aggiornaBadge();
+      aggiornaTotaleGiorno();
+      showToast('Errore salvataggio', 'undo');
+    }
+  }
+
+  // ---- ANNULLA VENDITA ----
+  async function annullaVendita(id) {
+    const p = prodotti.find(x => x.id === id);
+    if (!venditeOggi[id] || venditeOggi[id].quantita < 1) {
+      showToast('Nessun ' + p.nome + ' registrato oggi', 'undo');
+      return;
+    }
+
+    const oggi = oggiStr();
+    // Trova l'ultima vendita di oggi per questo prodotto
+    let ultimoIdx = -1;
+    for (let i = tutteVendite.length - 1; i >= 0; i--) {
+      const v = tutteVendite[i];
+      if (v.prodottoId === id && new Date(v.timestamp).toDateString() === oggi) {
+        ultimoIdx = i;
+        break;
+      }
+    }
+    if (ultimoIdx === -1) return;
+
+    const rimossa = tutteVendite.splice(ultimoIdx, 1)[0];
+    venditeOggi[id].quantita--;
+    venditeOggi[id].ricavo  -= rimossa.prezzo;
+    venditeOggi[id].margine -= rimossa.margine;
+    aggiornaBadge();
+    aggiornaTotaleGiorno();
+
+    const btn = document.getElementById('pbtn-' + id);
+    btn.classList.add('undo-mode');
+    setTimeout(() => btn.classList.remove('undo-mode'), 500);
+    showToast('↩ Annullato: ' + p.nome, 'undo');
+
+    try {
+      await salvaDati({ vendite: tutteVendite });
+    } catch(e) {
+      tutteVendite.splice(ultimoIdx, 0, rimossa);
+      calcolaOggi();
+      showToast('Errore annullamento', 'undo');
+    }
+  }
+
+  function aggiornaBadge() {
+    prodotti.forEach(p => {
+      const badge = document.getElementById('badge-' + p.id);
+      if (!badge) return;
+      const q = venditeOggi[p.id] ? venditeOggi[p.id].quantita : 0;
+      badge.textContent   = q > 0 ? q : '';
+      badge.style.display = q > 0 ? 'block' : 'none';
+    });
+  }
+
+  function aggiornaTotaleGiorno() {
+    let rev = 0, profit = 0;
+    Object.values(venditeOggi).forEach(v => { rev += v.ricavo || 0; profit += v.margine || 0; });
+    document.getElementById('day-rev').textContent    = fmt(rev);
+    document.getElementById('day-profit').textContent = fmt(profit);
+  }
+
+  function confermaReset() {
+    if (confirm('Azzerare tutte le vendite di oggi?')) {
+      const oggi = oggiStr();
+      tutteVendite = tutteVendite.filter(v => new Date(v.timestamp).toDateString() !== oggi);
+      venditeOggi = {};
+      aggiornaBadge();
+      aggiornaTotaleGiorno();
+      salvaDati({ vendite: tutteVendite });
+      showToast('Giornata azzerata');
+    }
+  }
+
+  // ---- REPORT MENSILE ----
+  function aggiornaReport() {
+    const mese = meseCorrente();
+    const risultati = {};
+
+    tutteVendite.forEach(v => {
+      const d = new Date(v.timestamp);
+      if ((d.getMonth() + '-' + d.getFullYear()) !== mese) return;
+      if (!risultati[v.prodottoId]) {
+        risultati[v.prodottoId] = { nome: v.nome, categoria: v.categoria, quantita: 0, ricavo: 0, margine: 0 };
+      }
+      risultati[v.prodottoId].quantita++;
+      risultati[v.prodottoId].ricavo  += v.prezzo;
+      risultati[v.prodottoId].margine += v.margine;
+    });
+
+    const list = Object.values(risultati);
+    if (!list.length) return;
+
+    const totR = list.reduce((s,p) => s + p.ricavo,   0);
+    const totP = list.reduce((s,p) => s + p.margine,  0);
+    const totV = list.reduce((s,p) => s + p.quantita, 0);
+    const avgM = totR > 0 ? Math.round((totP / totR) * 100) : 0;
+
+    document.getElementById('r-incasso').textContent  = fmt(totR);
+    document.getElementById('r-profitto').textContent = fmt(totP);
+    document.getElementById('r-vendite').textContent  = totV;
+    document.getElementById('r-margine').textContent  = avgM + '%';
+
+    const byVend = list.slice().sort((a,b) => b.quantita - a.quantita);
+    const byMarg = list.slice().sort((a,b) => {
+      const mA = a.ricavo > 0 ? a.margine/a.ricavo : 0;
+      const mB = b.ricavo > 0 ? b.margine/b.ricavo : 0;
+      return mB - mA;
+    });
+
+    document.getElementById('hl-v-name').textContent = byVend[0].nome + ' · ' + byVend[0].quantita + 'x';
+    const bm = byMarg[0];
+    const bmPct = bm.ricavo > 0 ? Math.round((bm.margine/bm.ricavo)*100) : 0;
+    document.getElementById('hl-m-name').textContent = bm.nome + ' · ' + bmPct + '%';
+
+    const maxV = byVend[0].quantita;
+    document.getElementById('report-list').innerHTML = byVend.map(p => {
+      const m    = p.ricavo > 0 ? Math.round((p.margine/p.ricavo)*100) : 0;
+      const high = m >= 65;
+      const barW = Math.round((p.quantita / maxV) * 100);
+      return '<div class="report-row"><div>' +
+        '<div class="r-cat">' + p.categoria + '</div>' +
+        '<div class="r-name">' + p.nome + '</div>' +
+        '<div class="r-sub">' + p.quantita + ' servizi · ' + fmt(p.ricavo) + '</div>' +
+        '<div class="r-bar"><div class="r-bar-fill ' + (high?'high':'') + '" style="width:' + barW + '%"></div></div>' +
+        '</div><div>' +
+        '<div class="r-margin ' + (high?'high':'mid') + '">' + m + '%</div>' +
+        '<div class="r-gain">' + fmt(p.margine) + '</div>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  // ---- CATALOGO ----
+  function buildCatalog() {
+    const categorie = {};
+    prodotti.slice().sort((a,b) => mPct(b)-mPct(a)).forEach(p => {
+      if (!categorie[p.categoria]) categorie[p.categoria] = [];
+      categorie[p.categoria].push(p);
+    });
+    let html = '';
+    Object.keys(categorie).forEach(cat => {
+      html += '<div class="catalog-section"><div class="cat-label">' + cat + '</div><div class="catalog-list">';
+      categorie[cat].forEach(p => {
+        const m = mPct(p);
+        html += '<div class="cat-row"><div>' +
+          '<div class="cat-name">' + p.nome + '</div>' +
+          '<div class="cat-sub">Vendita ' + fmt(p.prezzo) + ' · Costo ' + fmt(p.costo) + '</div>' +
+          '</div><div class="cat-m">' + m + '%<span>margine</span></div></div>';
+      });
+      html += '</div></div>';
+    });
+    document.getElementById('catalog-container').innerHTML = html;
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
